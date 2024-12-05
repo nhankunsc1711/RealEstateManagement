@@ -1,7 +1,6 @@
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+import mongoose, { Schema } from "mongoose";
 
-const BaseSchema = new Schema({
+export const BaseSchema: Schema = new mongoose.Schema({
     createdAt: {
         type: Date,
         immutable: true,
@@ -19,6 +18,4 @@ const BaseSchema = new Schema({
         type: Boolean,
         default: false,
     },
-});
-
-module.exports = { BaseSchema };
+})
