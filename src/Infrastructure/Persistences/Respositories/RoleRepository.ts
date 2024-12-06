@@ -11,9 +11,7 @@ class RoleRepository extends BaseUnitOfWork implements IRoleRepository {
     async createRole(roleData: any, session: ClientSession): Promise<typeof RoleWithBase> {
         try {
             const role: any = await RoleWithBase.create([{
-                name: roleData.name,
-                description: roleData.description,
-                bitwisePermission: roleData.bitwisePermission
+                ...roleData
             }], {session});
             return role;
         } catch (error: any) {
@@ -59,9 +57,7 @@ class RoleRepository extends BaseUnitOfWork implements IRoleRepository {
                 _id: new mongoose.Types.ObjectId(roleId)
             };
             const result: typeof RoleWithBase | null= await RoleWithBase.findOneAndUpdate(query, {
-                name: roleData.name,
-                description: roleData.description,
-                bitwisePermission: roleData.bitwisePermission
+                ...roleData
             }, {session});
 
             if (result == null) return null;
