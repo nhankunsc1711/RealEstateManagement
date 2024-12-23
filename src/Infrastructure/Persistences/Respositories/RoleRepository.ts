@@ -1,101 +1,92 @@
-import mongoose, {ClientSession} from "mongoose";
-import {BaseUnitOfWork} from './BaseUnitOfWork';
+import { Role, RoleWithBase } from "../../../Domain/Models/RoleModel";
 import IRoleRepository from "../../../Application/Persistences/IRepositories/IRoleRepository";
-import {RoleWithBase} from "../../../Domain/Models/RoleModel";
+import { BaseUnitOfWork } from './BaseUnitOfWork';
+import mongoose, {ClientSession} from "mongoose";
 
-class RoleRepository extends BaseUnitOfWork implements IRoleRepository {
-    constructor() {
-        super();
+class RoleRepository extends BaseUnitOfWork implements IRoleRepository{ constructor(){ super(); }
+
+    private buildQuery(criteria: any): any {
+        const query: any = {
+            isDeleted: criteria.isDeleted,
+            isActived: criteria.isActived,
+        };
+        if (criteria._id) {
+          query._id = new mongoose.Types.ObjectId(criteria._id);
+        }
+        if (criteria.name){
+          query.name = criteria.name;
+        }
+        return query;
     }
 
-    async createRole(roleData: any, session: ClientSession): Promise<typeof RoleWithBase> {
+    async createRole(roleData: any, session: ClientSession): Promise<typeof RoleWithBase>{
         try {
-            const role: any = await RoleWithBase.create([{
-                ...roleData
-            }], {session});
-            return role;
-        } catch (error: any) {
-            throw new Error("Error at createRole in RoleRepository: " + error.message);
+          const role: any = await RoleWithBase.create([{
+              ...roleData
+          }], {session});       
+          return role[0];
+        }catch (error: any) {
+          console.log("Error at Repository");
+          throw new Error("Error at createRole in RoleRepository: " + error.message);
         }
     }
 
-    async deleteRoleById(roleId: string, session: ClientSession): Promise<typeof RoleWithBase | null> {
+    async getRoleById(roleData: any): Promise<typeof RoleWithBase>{
         try {
-            const query: any = {
-                _id: new mongoose.Types.ObjectId(roleId)
-            }
-            const result:typeof RoleWithBase | null=  await RoleWithBase.findOneAndUpdate(query, {
-                isActive: false,
-                isDeleted: true
-            }, {session});
-
-            if (result == null) return null;
-            return result;
+          const query = this.buildQuery(roleData);
+          const role: typeof RoleWithBase[] = await RoleWithBase.find(query);
+          return role[0];
         } catch (error: any) {
-            throw new Error("Error at deleteRoleById in RoleRepository: " + error.message);
+          throw new Error("Error at getRoleById in RoleRepository: " + error.meesage);
         }
     }
 
-    async getRoleById(roleId: string, queryData: any): Promise<typeof RoleWithBase | null> {
+    async getAllRole(roleData: any): Promise<typeof RoleWithBase[]>{
         try {
-            const query: any = {
-                _id: new mongoose.Types.ObjectId(roleId),
-                isActive: queryData.isActive,
-                isDeleted: queryData.isDeleted
-            };
-            const roles: typeof RoleWithBase[] = await RoleWithBase.find(query);
-            if (roles == null) return null;
-            return roles[0];
+          const role: typeof RoleWithBase[] = await RoleWithBase.find(roleData);
+          return role;
         } catch (error: any) {
-            throw new Error("Error at getRoleById in RoleRepository: " + error.message);
+          throw new Error("Error at getRoleById in RoleRepository: " + error.meesage);
         }
     }
 
-    async updateRoleById(roleId: string, roleData: any, session: ClientSession): Promise<typeof RoleWithBase | null> {
+    async updateRoleById(roleData: any, roleUpdateData: any, session: ClientSession): Promise<typeof RoleWithBase> {
+      try {
+        const query = this.buildQuery(roleData);
+        const updateData: any = {
+          ...roleUpdateData,
+          updatedAt: Date.now()
+        }
+        const updatedRole: any = await RoleWithBase.findOneAndUpdate(query, updateData, {
+          session,
+          new: true
+        });
+        if (!updatedRole) {
+          throw new Error("Role not found after update");
+        }
+        return updatedRole;
+      } catch (error: any) {
+        throw new Error("Error at updateRoleById in RoleRepository: " + error.message);
+      }
+    }
+
+    async deleteRoleById(roleData: any, session: ClientSession){
         try {
-            const query: any = {
-                _id: new mongoose.Types.ObjectId(roleId)
-            };
-            const result: typeof RoleWithBase | null= await RoleWithBase.findOneAndUpdate(query, {
-                ...roleData
-            }, {session});
-
-            if (result == null) return null;
-
-            return result;
-
-
+          const query = this.buildQuery(roleData);
+          await RoleWithBase.deleteOne(query, {session});
         } catch (error: any) {
-            throw new Error("Error at updateRoleById in RoleRepository: " + error.message);
+          throw new Error("Error at deleteRoleById in RoleRepository: " + error.meesage);
         }
     }
 
-    async getAllRoles(queryData: any): Promise<typeof RoleWithBase[] | null> {
-        try {
-            const query: any = {
-                isActive: queryData.isActive,
-                isDeleted: queryData.isDeleted
-            };
-            return await RoleWithBase.find(query) ?? null;
-
-        } catch (error: any) {
-            throw new Error("Error at getAllRoles in RoleRepository: " + error.message);
-        }
-    }
-
-    async getRoleIdByRoleName(roleName: string, queryData: any): Promise<string|null|unknown> {
-        try {
-            const query: any = {
-                name: roleName,
-                isDeleted: queryData.isDeleted,
-                isActive: queryData.isActive
-            }
-            const role = await RoleWithBase.findOne(query)
-            if (!role) return null;
-            return role._id;
-        } catch (error: any) {
-            throw new Error("Error occured at getRoleIdByRoleName in RoleRepository: " + error.message);
-        }
+    async getRoleByRoleName(roleData: any): Promise<typeof RoleWithBase> {
+      try {
+          const query = this.buildQuery(roleData);
+          const role: typeof RoleWithBase[] = await RoleWithBase.find(query);
+          return role[0];
+      } catch (error: any) {
+          throw new Error("Error occured at getRoleIdByRoleName in RoleRepository: " + error.message);
+      }
     }
 }
 

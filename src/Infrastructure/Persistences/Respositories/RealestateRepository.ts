@@ -1,88 +1,80 @@
-import mongoose, {ClientSession} from "mongoose";
-import {BaseUnitOfWork} from './BaseUnitOfWork';
+import { Realestate, RealestateWithBase } from "../../../Domain/Models/RealestateModel";
 import IRealestateRepository from "../../../Application/Persistences/IRepositories/IRealestateRepository";
-import {RealestateWithBase} from "../../../Domain/Models/RealestateModel";
+import { BaseUnitOfWork } from './BaseUnitOfWork';
+import mongoose, {ClientSession} from "mongoose";
 
-class RealestateRepository extends BaseUnitOfWork implements IRealestateRepository {
-    constructor() {
-        super();
+class RealestateRepository extends BaseUnitOfWork implements IRealestateRepository{ constructor(){ super(); }
+
+    private buildQuery(criteria: any): any {
+      return {
+          _id: criteria._id ? new mongoose.Types.ObjectId(criteria._id) : undefined,
+          isDeleted: criteria.isDeleted,
+          isActived: criteria.isActived
+      };
     }
 
-    async createRealestate(realestateData: any, session: ClientSession): Promise<typeof RealestateWithBase> {
+    async createRealestate(realestateData: any, session: ClientSession): Promise<typeof RealestateWithBase>{
         try {
-            const realestate: any = await RealestateWithBase.create([{
-                ...realestateData
-            }], {session});
-            return realestate;
-        } catch (error: any) {
-            throw new Error("Error at createRealestate in RealestateRepository: " + error.message);
+          const {tagId, ...restData} = realestateData;
+          const realestate: any = await RealestateWithBase.create([{
+              tagId: new mongoose.Types.ObjectId(tagId),
+              ...restData
+          }], {session});       
+          return realestate[0];
+        }catch (error: any) {
+          console.log("Error at Repository");
+          throw new Error("Error at createRealestate in RealestateRepository: " + error.message);
         }
     }
 
-    async deleteRealestateById(realestateId: string, session: ClientSession): Promise<typeof RealestateWithBase | null> {
+    async getRealestateById(realestateData: any): Promise<typeof RealestateWithBase>{
         try {
-            const query: any = {
-                _id: new mongoose.Types.ObjectId(realestateId)
-            }
-            const result:typeof RealestateWithBase | null=  await RealestateWithBase.findOneAndUpdate(query, {
-                isActive: false,
-                isDeleted: true
-            }, {session});
-
-            if (result == null) return null;
-            return result;
+          const query = this.buildQuery(realestateData);
+          console.log(query);
+          const realestate: typeof RealestateWithBase[] = await RealestateWithBase.find(query);
+          return realestate[0];
         } catch (error: any) {
-            throw new Error("Error at deleteRealestateById in RealestateRepository: " + error.message);
+          throw new Error("Error at getRealestateById in RealestateRepository: " + error.meesage);
         }
     }
 
-    async getRealestateById(realestateId: string, queryData: any): Promise<typeof RealestateWithBase | null> {
+    async getAllRealestate(realestateData: any): Promise<typeof RealestateWithBase[]>{
         try {
-            const query: any = {
-                _id: new mongoose.Types.ObjectId(realestateId),
-                isActive: queryData.isActive,
-                isDeleted: queryData.isDeleted
-            };
-            const realestates: typeof RealestateWithBase[] = await RealestateWithBase.find(query);
-            if (realestates == null) return null;
-            return realestates[0];
+          const realestate: typeof RealestateWithBase[] = await RealestateWithBase.find(realestateData);
+          return realestate;
         } catch (error: any) {
-            throw new Error("Error at getRealestateById in RealestateRepository: " + error.message);
+          throw new Error("Error at getRealestateById in RealestateRepository: " + error.meesage);
         }
     }
 
-    async updateRealestateById(realestateId: string, realestateData: any, session: ClientSession): Promise<typeof RealestateWithBase | null> {
-        try {
-            const query: any = {
-                _id: new mongoose.Types.ObjectId(realestateId)
-            };
-            const result: typeof RealestateWithBase | null= await RealestateWithBase.findOneAndUpdate(query, {
-                ...realestateData
-            }, {session});
-
-            if (result == null) return null;
-
-            return result;
-
-
-        } catch (error: any) {
-            throw new Error("Error at updateRealestateById in RealestateRepository: " + error.message);
+    async updateRealestateById(realestateData: any, realestateUpdateData: any, session: ClientSession): Promise<typeof RealestateWithBase> {
+      try {
+        const query = this.buildQuery(realestateData);
+        const updateData: any = {
+          ...realestateUpdateData,
+          updatedAt: Date.now()
         }
+        const updatedRealestate: any = await RealestateWithBase.findOneAndUpdate(query, updateData, {
+          session,
+          new: true
+        });
+        if (!updatedRealestate) {
+          throw new Error("Realestate not found after update");
+        }
+        return updatedRealestate;
+      } catch (error: any) {
+        throw new Error("Error at updateRealestateById in RealestateRepository: " + error.message);
+      }
     }
 
-    async getAllRealestates(queryData: any): Promise<typeof RealestateWithBase[] | null> {
+    async deleteRealestateById(realestateData: any, session: ClientSession){
         try {
-            const query: any = {
-                isActive: queryData.isActive,
-                isDeleted: queryData.isDeleted
-            };
-            return await RealestateWithBase.find(query) ?? null;
-
+          const query = this.buildQuery(realestateData);
+          await RealestateWithBase.deleteOne(query, {session});
         } catch (error: any) {
-            throw new Error("Error at getAllRealestates in RealestateRepository: " + error.message);
+          throw new Error("Error at deleteRealestateById in RealestateRepository: " + error.meesage);
         }
     }
-
 }
 
 export default RealestateRepository;

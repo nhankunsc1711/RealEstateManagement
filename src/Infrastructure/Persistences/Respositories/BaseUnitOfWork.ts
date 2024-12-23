@@ -10,10 +10,7 @@ export class BaseUnitOfWork {
 
     async connect() {
         try {
-          console.log("Connecting to database...");
-          console.log(URI);
           await mongoose.connect(`${URI}`, {dbName: DBName});
-          console.log("Thanh cong...");
         } catch (error: any) {
           console.error("Error connecting to MongoDB:", error);
         }

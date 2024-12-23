@@ -1,25 +1,53 @@
-import {BaseUnitOfWork} from './BaseUnitOfWork';
+import { BaseUnitOfWork } from './BaseUnitOfWork';
 import IUserRepository from '../../../Application/Persistences/IRepositories/IUserRepository';
-import {UserWithBase} from '../../../Domain/Models/UserAccount';
-import mongoose, {ClientSession} from 'mongoose';
-import {hashPassword} from '../../../Application/Common/Helpers/passwordUtils';
+import { UserWithBase } from '../../../Domain/Models/UserAccount';
+import mongoose, { ClientSession } from 'mongoose';
+import { hashPassword } from '../../../Application/Common/Helpers/passwordUtils';
 
 class UserRepository extends BaseUnitOfWork implements IUserRepository {
     constructor() {
         super();
     }
 
+    private buildQuery(criteria: any): any {
+        const query: any = {
+            isDeleted: criteria.isDeleted,
+            isActived: criteria.isActived,
+        };
+        if (criteria._id) {
+          query._id = new mongoose.Types.ObjectId(criteria._id);
+        }
+        if (criteria.username){
+          query.username = criteria.username;
+        }
+        return query;
+    }
+
+    private async updateUser(query: any, updateData: any, session: ClientSession): Promise<typeof UserWithBase> {
+        try {
+            const updatedUser: any = await UserWithBase.findOneAndUpdate(query, updateData, { session, new: true });
+            if (!updatedUser) {
+                throw new Error("User not found after update");
+            }
+            return updatedUser;
+        } catch (error: any) {
+            throw new Error(`Error at updateUserById in UserRepository: ${error.message}`);
+        }
+    }
+
     async createUser(userData: any, session: ClientSession): Promise<typeof UserWithBase> {
         try {
-            const {password, ...restData} = userData;
-            // console.log('restData', restData);
+            const { password, roleId, ...restData } = userData;
 
             const hashedPassword: string = await hashPassword(password);
 
-            const user: any = await UserWithBase.create([{
-                password: hashedPassword,
-                ...restData
-            }], {session});
+            const user: any = await UserWithBase.create([
+                {
+                    password: hashedPassword,
+                    roleId: new mongoose.Types.ObjectId(roleId),
+                    ...restData,
+                },
+            ], { session });
 
             return user[0];
         } catch (error: any) {
@@ -27,95 +55,58 @@ class UserRepository extends BaseUnitOfWork implements IUserRepository {
         }
     }
 
-    async checkDuplicateUsername(username: string, queryData: any): Promise<boolean> {
+    async getUserByUsername(userData: any): Promise<typeof UserWithBase> {
         try {
-            const data: any = {
-                username: username,
-                isDeleted: queryData.isDeleted,
-                isActive: queryData.isActive,
-                roleId: queryData.roleId
-            }
-            const user: any = await UserWithBase.findOne(data);
-            if (user) return true;
-            return false;
-        } catch (error: any) {
-            throw new Error(`Error occured at checkDuplicateUsername in UserRepository: ${error.message}`);
-        }
-    }
-
-    async getUserByUsername(username: string, queryData: any): Promise<any> {
-        try {
-            const query: any = {
-                username,
-                isDeleted: queryData.isDeleted,
-                isActive: queryData.isActive,
-                //roleId: queryData.roleId
-            }
-            const user = await UserWithBase.findOne(query).lean();
-            return user;
+            const query = this.buildQuery(userData);
+            const user: typeof UserWithBase[] = await UserWithBase.find(query);
+            return user[0];
         } catch (error: any) {
             throw new Error(`Error at getUserByUsername in UserRepository: ${error.message}`);
         }
     }
 
-    async getUserById(userId: string, queryData: any): Promise<any> {
+    async getUserById(userData: any): Promise<typeof UserWithBase> {
         try {
-            const query: any = {
-                _id: userId,
-                ...queryData
-            };
-            const user: any = await UserWithBase.findOne(query).lean();
-            return user;
+            const query = this.buildQuery(userData);
+            const user: typeof UserWithBase[] = await UserWithBase.find(query);
+            return user[0];
         } catch (error: any) {
             throw new Error(`Error at getUserById in UserRepository: ${error.message}`);
         }
     }
 
-    async deleteUserById(userId: string, queryData: any, session: ClientSession): Promise<any> {
+    async getAllUser(userData: any): Promise<typeof UserWithBase[]>{
         try {
-            const query: any = {
-                _id: userId,
-                isDeleted: queryData.isDeleted,
-                isActive: queryData.isActive
-            }
-            const softDelete: any = {
-                updatedAt: Date.now(),
-                isDeleted: true,
-                isActive: false
-            }
-            await UserWithBase.updateOne(query, softDelete, {session});
-            return userId;
+          const user: typeof UserWithBase[] = await UserWithBase.find(userData);
+          return user;
+        } catch (error: any) {
+          throw new Error("Error at getTagById in TagRepository: " + error.meesage);
+        }
+    }
+
+    async deleteUserById(userData: any, session: ClientSession): Promise<{ acknowledged: boolean; deletedCount: number }> {
+        try {
+            const query = this.buildQuery(userData);
+            const result = await UserWithBase.deleteOne(query, { session });
+            return result;
         } catch (error: any) {
             throw new Error(`Error at deleteUserById in UserRepository: ${error.message}`);
         }
     }
 
-    async updateUserById(userId: string, userData: any, session: ClientSession): Promise<any> {
-        try {
-            const _id = new mongoose.Types.ObjectId(userId);
-            const updateData: any = {
-                ...userData,
-                updatedAt: Date.now()
-            }
-            await UserWithBase.findByIdAndUpdate(_id, updateData, {session});
-        } catch (error: any) {
-            throw new Error(`Error at updateUserById in UserRepository: ${error.message}`);
-        }
+    
+
+    async updateUserById(userData: any, userUpdateData: any, session: ClientSession): Promise<typeof UserWithBase> {
+        const query = this.buildQuery(userData);
+        const updateData = { ...userUpdateData, updatedAt: Date.now() };
+        return this.updateUser(query, updateData, session);
     }
 
-    async changePassword(userId: string, userData: any, session: ClientSession): Promise<any> {
-        try {
-            const hashedPassword: string = await hashPassword(userData.password);
-
-            const query: any = {
-                password: hashedPassword,
-                updatedAt: Date.now()
-            }
-            const user = await UserWithBase.findByIdAndUpdate(userId, query, {session});
-            return user;
-        } catch (error: any) {
-            throw new Error(`Error at changePassword in UserRepository: ${error.message}`);
-        }
+    async changePassword(userData: any, userUpdateData: any, session: ClientSession): Promise<typeof UserWithBase> {
+        const query = this.buildQuery(userData);
+        const hashedPassword: string = await hashPassword(userUpdateData.password);
+        const updateData = { password: hashedPassword, updatedAt: Date.now() };
+        return this.updateUser(query, updateData, session);
     }
 }
 

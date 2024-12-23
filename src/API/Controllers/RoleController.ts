@@ -15,7 +15,7 @@ import mongoose from "mongoose";
 export default class RoleController {
     private roleService: IRoleService = new RoleService();
 
-    createRole = async (req: Request<any, any, CreateRoleRequest>,res: Response) => {
+    createRole = async (req: Request<CreateRoleRequest, any, any>,res: Response) => {
         try {
             const {name, description, bitwisePermission} = req.body;
 
@@ -32,9 +32,9 @@ export default class RoleController {
         }
     }
 
-    getAllRole = async (req: Request<any, any, FindAllRoleRequest>,res: Response) => {
+    getAllRole = async (req: Request<FindAllRoleRequest, any, any>,res: Response) => {
         try {
-            const result = await this.roleService.getAllRole();
+            const result = await this.roleService.getAllRole({});
 
             return res.status(StatusCodeEnums.OK_200).json(result);
         } catch (error: any) {
@@ -42,7 +42,7 @@ export default class RoleController {
         }
     }
 
-    updateRole = async (req: Request<UpdateRoleRequest, any, UpdateRoleRequest>, res: Response) => {
+    updateRole = async (req: Request<UpdateRoleRequest, any, any>, res: Response) => {
         try {
             const {roleId} = req.params;
 

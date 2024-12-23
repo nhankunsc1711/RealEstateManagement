@@ -27,7 +27,9 @@ declare global {
 router.post('/user/register', userController.registerAccount);
 router.post('/user/create-employee', userController.registerAccountEmployee);
 router.post('/user/login', userController.login);
+router.post('/user/logout', userController.logout);
 router.get('/user/profile/:id', userController.getUserById);
+router.get('/user/allemployee', userController.getAllEmployee);
 router.put('/user/update', authenticateMiddleware, userController.updateUserById)
 router.delete('/user/:id',authenticateMiddleware, userController.deleteUserById);
 router.post('/user/change-password', userController.changePassword);

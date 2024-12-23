@@ -10,35 +10,40 @@ import RoleRepository from "../../../Infrastructure/Persistences/Respositories/R
 import {LoginResponse} from "./Responses/LoginResponse";
 import {CreateUserResponse} from "./Responses/CreateUserResponse";
 import {GetUserResponse} from "./Responses/GetUserResponse";
+import {GetAllUserResponse} from "./Responses/GetAllUserResponse";
 import {DeleteUserResponse} from "./Responses/DeleteUserResponse";
 import {UpdateUserResponse} from "./Responses/UpdateUserResponse";
+import mongoose from 'mongoose';
 const jwt = require('jsonwebtoken');
 
-class UserService implements IUserService {
+export default class UserService implements IUserService {
     private userRepository: IUserRepository = new UserRepository();
     private roleRepository: IRoleRepository = new RoleRepository();
 
     async registerAccount(data: any, roleName: string): Promise<CreateUserResponse | CoreException> {
         const session = await this.userRepository.startTransaction();
         try {
-            const baseQuery: any = {
-                isDeleted: false,
-                isActive: true
+            const userData: any = {
+                username: data.username,
+                isActived: true,
+                isDeleted: false
             }
-            // console.log('roleName', roleName);
-            const roleIdResult = await this.roleRepository.getRoleIdByRoleName(roleName, baseQuery);
-            // console.log('roleIdResult', roleIdResult);
-            if (!roleIdResult) return new CoreException(StatusCodeEnums.BadRequest_400, `Error occured with role`);
+            const roleData: any = {
+                name: roleName,
+                isActived: true,
+                isDeleted: false
+            }
+            const roleIdResult: any = await this.roleRepository.getRoleByRoleName(roleData);
+            if (!roleIdResult || roleIdResult === undefined) return new CoreException(StatusCodeEnums.BadRequest_400, `Error occured with role`);
 
-            const isExistUsername = await this.userRepository.checkDuplicateUsername(data.username, {
-                ...baseQuery
-            })
+            const isExistUsername = await this.userRepository.getUserByUsername(userData);
 
             if (isExistUsername)
                 return new CoreException(StatusCodeEnums.BadRequest_400, `Username is already exists`);
 
-            let createUserData: any = {
-                ...data
+            const createUserData: any = {
+                ...data,
+                roleId: roleIdResult._id
             }
 
 
@@ -54,40 +59,39 @@ class UserService implements IUserService {
     async login(data: any): Promise<LoginResponse | CoreException> {
         try {
             const {username, password} = data;
-            /*const role: any = await this.roleRepository.getRoleIdByRoleName(roleName, {
-                isDeleted: false,
-                isActive: true
-            });
-            if (!role) return new CoreException(StatusCodeEnums.InternalServerError_500, `Role is not suitable`);*/
-            const user = await this.userRepository.getUserByUsername(username, {isDeleted: false, isActive: true});
-            if (!user) return new CoreException(StatusCodeEnums.InternalServerError_500, `Username or password is incorrect`);
+            const userData: any = {
+                username: username,
+                isActived: true,
+                isDeleted: false
+            }
+            const user: any = await this.userRepository.getUserByUsername(userData);
+            console.log(user);
+            if (!user || user === undefined) return new CoreException(StatusCodeEnums.InternalServerError_500, `Username or password is incorrect`);
 
             const isMatchPassword = await comparePassword(password, user.password);
             if (!isMatchPassword) return new CoreException(StatusCodeEnums.InternalServerError_500, `Username or password is incorrect`);
 
             const tokens = await encodeJwt(user);
+            console.log(tokens);
 
-            return new LoginResponse('Login successfully', StatusCodeEnums.OK_200, {
-                accessToken: tokens.accessToken, refreshToken: tokens.refreshToken
-            })
+            return new LoginResponse('Login successfully', StatusCodeEnums.OK_200, {accessToken: tokens.accessToken, refreshToken: tokens.refreshToken})
         } catch (error: any) {
             await this.userRepository.abortTransaction();
             return new CoreException(StatusCodeEnums.InternalServerError_500, `Error occured at loginUserService: ${error.message}`);
         }
     }
 
-    async getUserById(id: any): Promise<GetUserResponse | CoreException> {
+    async getUserById(userId: string): Promise<GetUserResponse | CoreException> {
         try {
-            const queryData: any = {
+            const userData: any = {
+                _id: userId,
                 isDeleted: false,
-                isActive: true
+                isActived: true
             }
-            // const roleIdResult = await this.roleRepository.getRoleIdByRoleName('Candidate', queryData);
-            // if (!roleIdResult) return new CoreException(StatusCodeEnums.BadRequest_400, `Error occured with role`);
 
-            const result = await this.userRepository.getUserById(id as string, {...queryData});
+            const result: any = await this.userRepository.getUserById(userData);
 
-            if (result === null)
+            if (!result || result === undefined)
                 return new CoreException(StatusCodeEnums.NotFound_404, 'User not found');
 
             return new GetUserResponse(`Get user's information successfully`, StatusCodeEnums.OK_200, result);
@@ -96,19 +100,71 @@ class UserService implements IUserService {
         }
     }
 
-    async deleteUserById(userId: any): Promise<DeleteUserResponse | CoreException> {
+    async getAllUser(userData: any): Promise<GetAllUserResponse | CoreException> {
+        try {
+            const {username, fullName, roleName} = userData;
+            const allUserData: any = {};
+            if(username != undefined){
+                allUserData.username = {$regex: username, $options: 'i'};
+            }
+            if(fullName != undefined){
+                allUserData.fullName = {$regex: fullName, $options: 'i'};
+            }
+            if(roleName != undefined){
+                if(Array.isArray(roleName)){
+                    let roleId: any[] = [];
+                    for (const name of roleName) {
+                        const roleData: any = {
+                            name: name,
+                            isActived: true,
+                            isDeleted: false,
+                        };
+                        const roleIdResult: any = await this.roleRepository.getRoleByRoleName(roleData);
+                        if (roleIdResult) {
+                            const id = new mongoose.Types.ObjectId(roleIdResult._id);
+                            roleId.push(id);
+                        }
+                    }
+                }else{
+                    const roleData: any = {
+                        name: roleName,
+                        isActived: true,
+                        isDeleted: false
+                    };
+                    const roleIdResult: any = await this.roleRepository.getRoleByRoleName(roleData);
+                    if(roleIdResult){
+                        allUserData.roleId =  roleIdResult._id;
+                    }
+                }
+            }
+            allUserData.isActived = true;
+            allUserData.isDeleted = false;
+
+            const result: any = await this.userRepository.getAllUser(allUserData);
+
+            if (!result || result === undefined)
+                return new CoreException(StatusCodeEnums.NotFound_404, 'User not found');
+
+            return new GetAllUserResponse(`Get user's information successfully`, StatusCodeEnums.OK_200, result);
+        } catch (error: any) {
+            return new CoreException(StatusCodeEnums.InternalServerError_500, `Error occured at getUserByIdService: ${error.message}`);
+        }
+    }
+
+    async deleteUserById(userId: string): Promise<DeleteUserResponse | CoreException> {
         const session = await this.userRepository.startTransaction();
         try {
-            const queryData: any = {
+            const userData: any = {
+                _id: userId,
                 isDeleted: false,
-                isActive: true
+                isActived: true
             }
 
-            const checkExistUser = await this.userRepository.getUserById(userId as string, queryData);
-            if (!checkExistUser)
+            const user = await this.userRepository.getUserById(userData);
+            if (!user || user === undefined)
                 return new CoreException(StatusCodeEnums.BadRequest_400, 'User is not found!')
 
-            const result: any = await this.userRepository.deleteUserById(userId as string, queryData, session);
+            const result: any = await this.userRepository.deleteUserById(userData, session);
             await this.userRepository.commitTransaction();
             return new DeleteUserResponse('deleted user successfully', StatusCodeEnums.OK_200, result);
         } catch (error: any) {
@@ -117,18 +173,19 @@ class UserService implements IUserService {
         }
     }
 
-    async updateUserById(userId: any, updateData: any): Promise<UpdateUserResponse | CoreException> {
+    async updateUserById(userId: string, updateData: any): Promise<UpdateUserResponse | CoreException> {
         const session = await this.userRepository.startTransaction();
         try {
-            const queryData = {
+            const userData = {
+                _id: userId,
                 isDeleted: false,
-                isActive: true
+                isActived: true
             }
-            const checkExistUser = await this.userRepository.getUserById(userId as string, queryData);
-            if (!checkExistUser)
+            const user = await this.userRepository.getUserById(userData);
+            if (!user || user === undefined)
                 return new CoreException(StatusCodeEnums.BadRequest_400, 'User is not found!')
 
-            const result: any = await this.userRepository.updateUserById(userId as string, updateData, session);
+            const result: any = await this.userRepository.updateUserById(userData, updateData, session);
             await this.userRepository.commitTransaction()
             return new UpdateUserResponse('updated user successfully', StatusCodeEnums.OK_200, result);
         } catch (error: any) {
@@ -137,28 +194,29 @@ class UserService implements IUserService {
         }
     }
 
-    async changePassword(userId: string, data: any): Promise<LoginResponse | CoreException> {
+    async changePassword(userId: string, updatePasswordData: any): Promise<LoginResponse | CoreException> {
         const session = await this.userRepository.startTransaction();
 
         try {
-            const queryData = {
+            const userData = {
+                _id: userId,
                 isDeleted: false,
-                isActive: true
+                isActived: true
             };
 
-            const user = await this.userRepository.getUserById(userId as string, queryData);
-            if (!user)
+            const user: any = await this.userRepository.getUserById(userData);
+            if (!user || user === undefined)
                 return new CoreException(StatusCodeEnums.BadRequest_400, 'User is not found!');
 
-            const isMatchPassword = await comparePassword(data.oldPassword, user.password);
+            const isMatchPassword = await comparePassword(updatePasswordData.oldPassword, user.password);
             if (!isMatchPassword) return new CoreException(StatusCodeEnums.InternalServerError_500, `Old password is incorrect`);
 
             const query = {
-                password: data.newPassword,
-                ...queryData
+                password: updatePasswordData.newPassword,
+                ...userData
             }
 
-            const result: any = await this.userRepository.changePassword(userId, query, session);
+            const result: any = await this.userRepository.changePassword(userData, query, session);
 
             await this.userRepository.commitTransaction();
 
@@ -183,5 +241,3 @@ class UserService implements IUserService {
         }
     }
 }
-
-export default UserService;

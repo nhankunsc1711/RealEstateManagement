@@ -1,5 +1,5 @@
 export class DeleteRoleRequest {
-    roleId: string;
+    public roleId: string;
     constructor(roleId: string) {
         this.roleId = roleId;
     }

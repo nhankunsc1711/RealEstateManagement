@@ -7,8 +7,8 @@ import { CoreException } from "../../Common/Exceptions/CoreException";
 
 export default interface IRealestateService {
     create(data: any): Promise<CreateRealestateResponse | CoreException>;
-    getRealestateById(realestateId: any): Promise<GetRealestateResponse | CoreException>;
-    getAllRealestate(): Promise<GetAllRealestateResponse | CoreException>;
-    updateRealestateById(realestateId: any, updateData: any): Promise<UpdateRealestateResponse | CoreException>;
-    deleteRealestateById(realestateId: any): Promise<DeleteRealestateResponse | CoreException>;
+    getRealestateById(realestateId: string): Promise<GetRealestateResponse | CoreException>;
+    getAllRealestate(realestateData: any): Promise<GetAllRealestateResponse | CoreException>;
+    updateRealestateById(realestateId: string, updateData: any): Promise<UpdateRealestateResponse | CoreException>;
+    deleteRealestateById(realestateId: string): Promise<DeleteRealestateResponse | CoreException>;
 }

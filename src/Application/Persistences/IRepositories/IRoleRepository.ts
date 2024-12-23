@@ -1,14 +1,13 @@
+import { ClientSession } from "mongoose";
+import { Role, RoleWithBase } from "../../../Domain/Models/RoleModel";
 import { IBaseUnitOfWork } from "./IBaseUnitOfWork";
-import {ClientSession} from "mongoose";
-import {RoleWithBase} from "../../../Domain/Models/RoleModel";
 
-interface IRoleRepository extends IBaseUnitOfWork{
-    getRoleById(roleId: string, queryData: any): Promise<typeof RoleWithBase | null>;
-    getAllRoles(queryData: any): Promise<typeof RoleWithBase[] | null>;
+
+export default interface IRoleRepository extends IBaseUnitOfWork{
     createRole(roleData: any, session: ClientSession): Promise<typeof RoleWithBase>;
-    updateRoleById(roleId: string, roleData: any, session: ClientSession): Promise<typeof RoleWithBase | null>;
-    deleteRoleById(roleId: string, session: ClientSession): Promise<typeof RoleWithBase | null>;
-    getRoleIdByRoleName(roleName: string, queryData: any): Promise<string|null|unknown>;
+    getRoleById(roleData: any): Promise<typeof RoleWithBase>;
+    getAllRole(roleData: any): Promise<typeof RoleWithBase[]>;
+    updateRoleById(roleData: any, queryData: any, session: ClientSession): Promise<typeof RoleWithBase>;
+    deleteRoleById(roleData: any, session: ClientSession): any;
+    getRoleByRoleName(roleData: any): Promise<typeof RoleWithBase>;
 }
-
-export default IRoleRepository;

@@ -1,13 +1,12 @@
+import { ClientSession } from "mongoose";
+import { Contract, ContractWithBase } from "../../../Domain/Models/ContractModel";
 import { IBaseUnitOfWork } from "./IBaseUnitOfWork";
-import {ClientSession} from "mongoose";
-import {ContractWithBase} from "../../../Domain/Models/ContractModel";
 
-interface IContractRepository extends IBaseUnitOfWork{
-    getContractById(contractId: string, queryData: any): Promise<typeof ContractWithBase | null>;
-    getAllContracts(queryData: any): Promise<typeof ContractWithBase[] | null>;
+
+export default interface IContractRepository extends IBaseUnitOfWork{
     createContract(contractData: any, session: ClientSession): Promise<typeof ContractWithBase>;
-    updateContractById(contractId: string, contractData: any, session: ClientSession): Promise<typeof ContractWithBase | null>;
-    deleteContractById(contractId: string, session: ClientSession): Promise<typeof ContractWithBase | null>;
+    getContractById(contractData: any): Promise<typeof ContractWithBase>;
+    getAllContract(contractData: any): Promise<typeof ContractWithBase[]>;
+    updateContractById(contractData: any, queryData: any, session: ClientSession): Promise<typeof ContractWithBase>;
+    deleteContractById(contractData: any, session: ClientSession): any;
 }
-
-export default IContractRepository;

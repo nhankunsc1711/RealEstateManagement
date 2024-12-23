@@ -9,12 +9,13 @@ export const Realestate = new mongoose.Schema({
     title: {type: String},
     description: {type: String},
     address: {type: String},
-    type: {type: String},
+    tagId: {type: Types.ObjectId, validate: {validator: isValidObjectId}},
     area: {type: String},
     price: {type: Number},
     utilities: {type: String},
     employeeId: {type: Types.ObjectId, validate: {validator: isValidObjectId}},
     imagePath: {type: String},
+    status: {type: String},
 
 })
 const RealestateWithBaseSchema = new mongoose.Schema({

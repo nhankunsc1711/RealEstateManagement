@@ -7,8 +7,8 @@ import { CoreException } from "../../Common/Exceptions/CoreException";
 
 export default interface IContractService {
     create(data: any): Promise<CreateContractResponse | CoreException>;
-    getContractById(contractId: any): Promise<GetContractResponse | CoreException>;
-    getAllContract(): Promise<GetAllContractResponse | CoreException>;
-    updateContractById(contractId: any, updateData: any): Promise<UpdateContractResponse | CoreException>;
-    deleteContractById(contractId: any): Promise<DeleteContractResponse | CoreException>;
+    getContractById(contractId: string): Promise<GetContractResponse | CoreException>;
+    getAllContract(contractData: any): Promise<GetAllContractResponse | CoreException>;
+    updateContractById(contractId: string, updateData: any): Promise<UpdateContractResponse | CoreException>;
+    deleteContractById(contractId: string): Promise<DeleteContractResponse | CoreException>;
 }

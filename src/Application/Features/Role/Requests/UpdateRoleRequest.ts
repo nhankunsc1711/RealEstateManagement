@@ -1,8 +1,8 @@
 export class UpdateRoleRequest {
-    roleId: string;
-    name: string;
-    description: string;
-    bitwisePermission: number;
+    public roleId: string;
+    public name: string;
+    public description: string;
+    public bitwisePermission: number;
 
 
     constructor(roleId: string, name: string, description: string, bitwisePermission: number) {

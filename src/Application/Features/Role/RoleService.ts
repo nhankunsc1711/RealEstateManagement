@@ -10,7 +10,6 @@ import {GetAllRoleResponse} from "./Responses/GetAllRoleResponse";
 import {UpdateRoleResponse} from "./Responses/UpdateRoleResponse";
 import {DeleteRoleResponse} from "./Responses/DeleteRoleResponse";
 
-import {RoleWithBase} from "../../../Domain/Models/RoleModel";
 
 export default class RoleService implements IRoleService {
     private roleRepository: IRoleRepository = new RoleRepository();
@@ -18,8 +17,7 @@ export default class RoleService implements IRoleService {
     async create(data: any): Promise<CreateRoleResponse | CoreException> {
         const session = await this.roleRepository.startTransaction();
         try {
-            const result = await this.roleRepository.createRole(data, session);
-
+            const result: any = await this.roleRepository.createRole(data, session);
             await this.roleRepository.commitTransaction();
             return new CreateRoleResponse("Create Role Success", StatusCodeEnums.Created_201, result);
         } catch (error: any) {
@@ -28,56 +26,50 @@ export default class RoleService implements IRoleService {
         }
     }
 
-    async getRoleById(roleId: any): Promise<GetRoleResponse | CoreException> {
+    async getRoleById(roleId: string): Promise<GetRoleResponse | CoreException> {
         try {
-            const query = {
-                isActive: true,
+            const roleData = {
+                _id: roleId,
+                isActived: true,
                 isDeleted: false
             }
-
-            const result: typeof RoleWithBase | null = await this.roleRepository.getRoleById(roleId, query);
-            if (result == null) {
+            const role: any = await this.roleRepository.getRoleById(roleData);
+            if (!role || role === undefined) {
                 return new CoreException(StatusCodeEnums.NotFound_404, "Role not found");
             }
-            return new GetRoleResponse("Find Role Success", StatusCodeEnums.OK_200, result);
+            return new GetRoleResponse("Find Role Success", StatusCodeEnums.OK_200, role);
         } catch (error: any) {
             await this.roleRepository.abortTransaction();
             throw new CoreException(StatusCodeEnums.InternalServerError_500, error.message);
         }
     }
 
-    async getAllRole(): Promise<GetAllRoleResponse | CoreException> {
+    async getAllRole(roleData: any): Promise<GetAllRoleResponse | CoreException> {
         try {
-            const query = {
-                isActive: true,
-                isDeleted: false
-            }
-
-            const result = await this.roleRepository.getAllRoles(query);
-            if (result == null) {
+            const role: any = await this.roleRepository.getAllRole(roleData);
+            if (!role || role === undefined) {
                 return new CoreException(StatusCodeEnums.NotFound_404,"Role not found");
             }
-
-            console.log("Result:", result);
-
-            return new GetAllRoleResponse("Find All Role Success", StatusCodeEnums.OK_200, result);
-
+            return new GetAllRoleResponse("Find All Role Success", StatusCodeEnums.OK_200, role);
         } catch (error: any) {
             throw new CoreException(StatusCodeEnums.InternalServerError_500, error.message);
         }
     }
 
-    async updateRoleById(roleId: any, updateData: any): Promise<UpdateRoleResponse | CoreException> {
+    async updateRoleById(roleId: string, updateData: any): Promise<UpdateRoleResponse | CoreException> {
+        const session = await this.roleRepository.startTransaction();
         try {
-            const session = await this.roleRepository.startTransaction();
-
-            const result: typeof RoleWithBase | null = await this.roleRepository.updateRoleById(roleId, updateData, session);
-            await this.roleRepository.commitTransaction();
-
-            if (result == null) {
-                return new CoreException(StatusCodeEnums.NotFound_404, "Role not found");
+            const roleData: any = {
+                _id: roleId,
+                isActived: true,
+                isDeleted: false
             }
-
+            const role: any = await this.roleRepository.getRoleById(roleData);
+            if (!role || role === undefined) {
+                return new CoreException(StatusCodeEnums.InternalServerError_500, "Role not found!");
+            }
+            const result: any = await this.roleRepository.updateRoleById(roleData, updateData, session);
+            await this.roleRepository.commitTransaction();
             return new UpdateRoleResponse("Update Role Success", StatusCodeEnums.OK_200, result);
 
         } catch (error: any) {
@@ -86,15 +78,22 @@ export default class RoleService implements IRoleService {
         }
     }
 
-    async deleteRoleById(roleId: any): Promise<DeleteRoleResponse | CoreException> {
+    async deleteRoleById(roleId: string): Promise<DeleteRoleResponse | CoreException> {
+        const session = await this.roleRepository.startTransaction();
         try {
-            const session = await this.roleRepository.startTransaction();
-
-            const result: any = await this.roleRepository.deleteRoleById(roleId, session);
+            const roleData: any = {
+                _id: roleId,
+                isActived: true,
+                isDeleted: false
+            }
+            const role: any = await this.roleRepository.getRoleById(roleData);
+            if (!role || role === undefined) {
+                throw new CoreException(StatusCodeEnums.InternalServerError_500, "Role not found!");
+            }
+            const result: any = await this.roleRepository.deleteRoleById(roleData, session);
 
             await this.roleRepository.commitTransaction();
             return new DeleteRoleResponse("Delete Role Success", StatusCodeEnums.OK_200, result);
-
         } catch (error: any) {
             await this.roleRepository.abortTransaction();
             throw new CoreException(StatusCodeEnums.InternalServerError_500, error.message);

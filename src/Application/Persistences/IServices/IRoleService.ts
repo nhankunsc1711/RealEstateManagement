@@ -7,8 +7,8 @@ import { CoreException } from "../../Common/Exceptions/CoreException";
 
 export default interface IRoleService {
     create(data: any): Promise<CreateRoleResponse | CoreException>;
-    getRoleById(roleId: any): Promise<GetRoleResponse | CoreException>;
-    getAllRole(): Promise<GetAllRoleResponse | CoreException>;
-    updateRoleById(roleId: any, updateData: any): Promise<UpdateRoleResponse | CoreException>;
-    deleteRoleById(roleId: any): Promise<DeleteRoleResponse | CoreException>;
+    getRoleById(roleId: string): Promise<GetRoleResponse | CoreException>;
+    getAllRole(roleData: any): Promise<GetAllRoleResponse | CoreException>;
+    updateRoleById(roleId: string, updateData: any): Promise<UpdateRoleResponse | CoreException>;
+    deleteRoleById(roleId: string): Promise<DeleteRoleResponse | CoreException>;
 }

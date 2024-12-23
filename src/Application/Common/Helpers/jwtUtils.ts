@@ -6,9 +6,6 @@ export async function encodeJwt(user: any): Promise<any> {
         userId: user._id
     }
 
-    if (user.companyId)
-        data.companyId = user.companyId
-
     const accessToken: string = await jwt.sign(
         data,
         process.env.REACT_APP_JWT_SECRET || '',

@@ -1,13 +1,12 @@
+import { ClientSession } from "mongoose";
+import { Realestate, RealestateWithBase } from "../../../Domain/Models/RealestateModel";
 import { IBaseUnitOfWork } from "./IBaseUnitOfWork";
-import {ClientSession} from "mongoose";
-import {RealestateWithBase} from "../../../Domain/Models/RealestateModel";
 
-interface IRealestateRepository extends IBaseUnitOfWork{
-    getRealestateById(realestateId: string, queryData: any): Promise<typeof RealestateWithBase | null>;
-    getAllRealestates(queryData: any): Promise<typeof RealestateWithBase[] | null>;
+
+export default interface IRealestateRepository extends IBaseUnitOfWork{
     createRealestate(realestateData: any, session: ClientSession): Promise<typeof RealestateWithBase>;
-    updateRealestateById(realestateId: string, realestateData: any, session: ClientSession): Promise<typeof RealestateWithBase | null>;
-    deleteRealestateById(realestateId: string, session: ClientSession): Promise<typeof RealestateWithBase | null>;
+    getRealestateById(realestateData: any): Promise<typeof RealestateWithBase>;
+    getAllRealestate(realestateData: any): Promise<typeof RealestateWithBase[]>;
+    updateRealestateById(realestateData: any, queryData: any, session: ClientSession): Promise<typeof RealestateWithBase>;
+    deleteRealestateById(realestateData: any, session: ClientSession): any;
 }
-
-export default IRealestateRepository;

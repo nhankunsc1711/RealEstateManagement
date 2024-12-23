@@ -1,5 +1,6 @@
 import UserService from "../../Application/Features/User/UserService";
 import IUserService from "../../Application/Persistences/IServices/IUserService";
+
 import {StatusCodeEnums} from "../../Domain/Enums/StatusCodeEnums";
 import {Request, Response} from 'express';
 import {CreateUserRequest} from "../../Application/Features/User/Requests/CreateUserRequest";
@@ -10,7 +11,7 @@ import {ChangePasswordRequest} from '../../Application/Features/User/Requests/Ch
 export default class UserController {
     private userService: IUserService = new UserService();
 
-    registerAccount = async (req: Request<any, any, CreateUserRequest>, res: Response) => {
+    registerAccount = async (req: Request<CreateUserRequest, any, any>, res: Response) => {
         try {
             const {
                 username,
@@ -45,7 +46,7 @@ export default class UserController {
         }
     }
 
-    registerAccountEmployee = async (req: Request<any, any, CreateUserRequest>, res: Response) => {
+    registerAccountEmployee = async (req: Request<CreateUserRequest, any, any>, res: Response) => {
         try {
             const {
                 username,
@@ -82,12 +83,12 @@ export default class UserController {
         }
     }
 
-    createUser = async (userData: any, roleName: string): Promise<any> => {
+    private createUser = async (userData: any, roleName: string): Promise<any> => {
         const result = await this.userService.registerAccount(userData, roleName);
         return result;
     }
 
-    login = async (req: Request<any, any, LoginRequest>, res: Response) => {
+    login = async (req: Request<LoginRequest, any, any>, res: Response) => {
         try {
             
             const result = await this.handleLogin(req.body);
@@ -96,11 +97,8 @@ export default class UserController {
             }
 
             res.cookie('access_token', result.data?.accessToken, {
-                httpOnly: true, //Config cookie just accessed by server
-                // signed: true, //Cookie secure, prevents client-side modifications
-                maxAge: 10 * 60 * 60 * 1000, //Expires after 10 hours
-                // sameSite: 'none',
-                // secure: true // Cookies are only transmitted over a secure channel (eg: https protocol)
+                httpOnly: true,
+                maxAge: 10 * 60 * 60 * 1000,
             })
 
             return res.status(StatusCodeEnums.OK_200).json(result);
@@ -109,10 +107,26 @@ export default class UserController {
         }
     }
 
-    handleLogin = async (userData: any): Promise<any> => {
+    private handleLogin = async (userData: any): Promise<any> => {
         const {username, password} = userData;
         const result = await this.userService.login({username, password});
         return result;
+    }
+
+    logout = async (req: Request, res: Response): Promise<Response> => {
+        try {
+            res.clearCookie('access_token', {
+                httpOnly: true, 
+            });
+
+            return res.status(StatusCodeEnums.OK_200).json({
+                message: 'Logout successful'
+            });
+        } catch (error: any) {
+            return res.status(StatusCodeEnums.InternalServerError_500).json({
+                error: error.message
+            });
+        }
     }
 
     getUserById = async (req: Request, res: Response): Promise<Response> => {
@@ -124,6 +138,38 @@ export default class UserController {
 
             return res.status(StatusCodeEnums.OK_200).json(result);
         } catch (error: any) {
+            return res.status(StatusCodeEnums.InternalServerError_500).json({error: error.message})
+        }
+    }
+
+    getAllEmployee = async (req: Request, res: Response): Promise<Response> =>{
+        try {
+            const {username, fullName} = req.body;
+            const userData: any = {
+                username: username,
+                fullName: fullName,
+                roleName: "Employee"
+            }
+            const result = await this.userService.getAllUser(userData);
+
+            return res.status(StatusCodeEnums.OK_200).json(result);
+        } catch(error: any){
+            return res.status(StatusCodeEnums.InternalServerError_500).json({error: error.message})
+        }
+    }
+
+    getAllUser = async (req: Request, res: Response): Promise<Response> =>{
+        try {
+            const {username, fullName, roleName} = req.body;
+            const userData: any = {
+                username: username,
+                fullName: fullName,
+                roleName: roleName
+            }
+            const result = await this.userService.getAllUser(userData);
+
+            return res.status(StatusCodeEnums.OK_200).json(result);
+        } catch(error: any){
             return res.status(StatusCodeEnums.InternalServerError_500).json({error: error.message})
         }
     }
@@ -140,7 +186,7 @@ export default class UserController {
         }
     }
 
-    updateUserById = async (req: Request<any, any, UpdateUserRequest>, res: Response): Promise<any> => {
+    updateUserById = async (req: Request<UpdateUserRequest, any, any>, res: Response): Promise<any> => {
         try {
             if ((req as any)?.file) {
                 const filename: string = (req as any).file?.filename;
@@ -161,7 +207,7 @@ export default class UserController {
         }
     }
 
-    changePassword = async (req: Request<any, any, ChangePasswordRequest>, res: Response): Promise<any> => {
+    changePassword = async (req: Request<ChangePasswordRequest, any, any>, res: Response): Promise<any> => {
         try {
             var userId: string = '';
             if ((req as any).user?.userId)

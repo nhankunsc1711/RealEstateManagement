@@ -1,10 +1,28 @@
 import {BaseResponse} from "../../../Common/Model/Response/BaseResponse";
 
 export class UpdateRoleResponse extends BaseResponse {
-    private data: any;
-
-    constructor(message: string, statusCode: number, data: {}, error?: string) {
+    private data: {
+        _id: string;
+        name: string;
+        description: string;
+        bitwisePermission: number;
+    };
+    constructor(message: string, 
+        statusCode: number, 
+        data: {
+            _id: string;
+            name: string;
+            description: string;
+            bitwisePermission: number;
+        }, 
+        error?: string
+    ){
         super(message, statusCode, data, error);
-        this.data = data;
+        this.data = {
+            _id: data._id,
+            name: data.name,
+            description: data.description,
+            bitwisePermission: data.bitwisePermission
+        };
     }
 }

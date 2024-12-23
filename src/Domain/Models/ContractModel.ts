@@ -11,6 +11,7 @@ export const Contract = new mongoose.Schema({
     description:{type: String},
     guestId:{type: Types.ObjectId,validate: {validator: isValidObjectId,}},
     employeeId:{type: Types.ObjectId,validate: {validator: isValidObjectId,}},
+    realestateId: {type: Types.ObjectId,validate: {validator: isValidObjectId,}},
     fileURL:{type: String},
     issueDate:{type: Date,immutable: true,},
     expiryDate:{type: Date,immutable: true,}
